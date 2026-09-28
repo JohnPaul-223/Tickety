@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datche Ticketing Service</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Load Supabase library first -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="currentColor" opacity="0.1"/>
+                    <path d="M16 8L8 12V20L16 24L24 20V12L16 8Z" fill="currentColor"/>
+                </svg>
+                <span>Datche</span>
+                <span class="nav-subtitle">Ticketing System</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#" onclick="showPage('dashboard')" class="active">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="11" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    Dashboard
+                </a></li>
+                <li><a href="#" onclick="showPage('tickets')">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 6h12M4 10h12M4 14h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Tickets
+                </a></li>
+                <li><a href="#" onclick="showPage('schedule')">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M7 2v4M13 2v4M3 8h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Schedule
+                </a></li>
+            </ul>
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="page active">
+            <div class="page-header">
+                <div>
+                    <h1>Dashboard</h1>
+                    <p class="page-subtitle">Overview of your support operations</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="showNewScheduleModal()">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        Schedule Task
+                    </button>
+                    <button class="btn btn-primary" onclick="showNewTicketModal()">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        New Ticket
+                    </button>
+                </div>
+            </div>
+            
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-content">
+                        <div class="stat-label">Total Tickets</div>
+                        <div class="stat-value" id="stat-total">0</div>
+                    </div>
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M9 12h6M9 16h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-info">
+                    <div class="stat-content">
+                        <div class="stat-label">Open Tickets</div>
+                        <div class="stat-value" id="stat-open">0</div>
+                    </div>
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 8v4l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-warning">
+                    <div class="stat-content">
+                        <div class="stat-label">In Progress</div>
+                        <div class="stat-value" id="stat-progress">0</div>
+                    </div>
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-success">
+                    <div class="stat-content">
+                        <div class="stat-label">Resolved</div>
+                        <div class="stat-value" id="stat-resolved">0</div>
+                    </div>
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div id="overdue-alert" class="alert alert-danger" style="display: none;">
+                <h3>⚠️ Overdue Tickets</h3>
+                <ul id="overdue-list"></ul>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <section class="chart-card">
+                    <h3>Tickets Per Month</h3>
+                    <canvas id="tickets-per-month-chart"></canvas>
+                </section>
+
+                <section class="chart-card">
+                    <h3>Status Distribution</h3>
+                    <canvas id="status-distribution-chart"></canvas>
+                </section>
+
+                <section class="chart-card">
+                    <h3>Priority Breakdown</h3>
+                    <canvas id="priority-breakdown-chart"></canvas>
+                </section>
+
+                <section class="chart-card">
+                    <h3>Weekly Activity</h3>
+                    <canvas id="weekly-activity-chart"></canvas>
+                </section>
+            </div>
+
+            <div class="dashboard-grid">
+                <section class="dashboard-section">
+                    <h2>Recent Tickets</h2>
+                    <div id="recent-tickets" class="ticket-list"></div>
+                </section>
+
+                <section class="dashboard-section">
+                    <h2>Today's Schedule</h2>
+                    <div id="today-schedule" class="schedule-list"></div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Tickets Page -->
+        <div id="tickets-page" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Tickets</h1>
+                    <p class="page-subtitle">Manage and track all support tickets</p>
+                </div>
+                <button class="btn btn-primary" onclick="showNewTicketModal()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    New Ticket
+                </button>
+            </div>
+
+            <div class="filter-tabs">
+                <a href="#" onclick="filterTickets('all')" class="active" id="filter-all">All</a>
+                <a href="#" onclick="filterTickets('open')" id="filter-open">Open</a>
+                <a href="#" onclick="filterTickets('in_progress')" id="filter-in_progress">In Progress</a>
+                <a href="#" onclick="filterTickets('resolved')" id="filter-resolved">Resolved</a>
+                <a href="#" onclick="filterTickets('closed')" id="filter-closed">Closed</a>
+            </div>
+
+            <div id="tickets-list"></div>
+        </div>
+
+        <!-- Schedule Page -->
+        <div id="schedule-page" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Schedule</h1>
+                    <p class="page-subtitle">Plan and organize your support tasks</p>
+                </div>
+                <button class="btn btn-primary" onclick="showNewScheduleModal()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Schedule Task
+                </button>
+            </div>
+
+            <div class="calendar-toolbar">
+                <div class="calendar-navigation">
+                    <button type="button" class="icon-button" onclick="changeCalendarMonth(-1)" aria-label="Previous month" title="Previous month">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <h2 id="calendar-month-label">Schedule</h2>
+                    <button type="button" class="icon-button" onclick="changeCalendarMonth(1)" aria-label="Next month" title="Next month">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="goToToday()">Today</button>
+            </div>
+
+            <div class="calendar-layout">
+                <section class="calendar-panel" aria-labelledby="calendar-month-label">
+                    <div class="calendar-weekdays" aria-hidden="true">
+                        <span>Sun</span>
+                        <span>Mon</span>
+                        <span>Tue</span>
+                        <span>Wed</span>
+                        <span>Thu</span>
+                        <span>Fri</span>
+                        <span>Sat</span>
+                    </div>
+                    <div id="calendar-grid" class="calendar-grid" aria-label="Task calendar"></div>
+                </section>
+
+                <aside class="calendar-agenda" aria-labelledby="calendar-selected-date">
+                    <div class="calendar-agenda-header">
+                        <p>Selected day</p>
+                        <h2 id="calendar-selected-date"></h2>
+                    </div>
+                    <div id="calendar-day-tasks" class="calendar-day-tasks"></div>
+                </aside>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Ticket Modal -->
+    <div id="ticket-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('ticket-modal')">&times;</span>
+            <h2 id="ticket-modal-title">Create New Ticket</h2>
+            <form id="ticket-form" onsubmit="saveTicket(event)">
+                <input type="hidden" id="ticket-id">
+                
+                <div class="form-group">
+                    <label for="ticket-title">Title *</label>
+                    <input type="text" id="ticket-title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="ticket-description">Description *</label>
+                    <textarea id="ticket-description" rows="4" required></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ticket-client-name">Client Name *</label>
+                        <input type="text" id="ticket-client-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ticket-client-email">Client Email</label>
+                        <input type="email" id="ticket-client-email">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ticket-client-phone">Client Phone</label>
+                        <input type="tel" id="ticket-client-phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ticket-category">Category</label>
+                        <input type="text" id="ticket-category" placeholder="e.g., Bug, Feature Request">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ticket-priority">Priority *</label>
+                        <select id="ticket-priority" required>
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ticket-status">Status *</label>
+                        <select id="ticket-status" required>
+                            <option value="open" selected>Open</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ticket-due-date">Due Date</label>
+                    <input type="datetime-local" id="ticket-due-date">
+                </div>
+
+                <div class="form-group">
+                    <label for="ticket-notes">Notes</label>
+                    <textarea id="ticket-notes" rows="3"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Ticket</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('ticket-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Schedule Modal -->
+    <div id="schedule-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('schedule-modal')">&times;</span>
+            <h2 id="schedule-modal-title">Schedule New Task</h2>
+            <form id="schedule-form" onsubmit="saveSchedule(event)">
+                <input type="hidden" id="schedule-id">
+                
+                <div class="form-group">
+                    <label for="schedule-title">Task Title *</label>
+                    <input type="text" id="schedule-title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="schedule-description">Description</label>
+                    <textarea id="schedule-description" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="schedule-ticket">Link to Ticket (optional)</label>
+                    <select id="schedule-ticket">
+                        <option value="">-- No ticket --</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="schedule-date">Scheduled Date & Time *</label>
+                        <input type="datetime-local" id="schedule-date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="schedule-duration">Duration (minutes) *</label>
+                        <input type="number" id="schedule-duration" value="60" min="15" step="15" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="schedule-status">Status</label>
+                    <select id="schedule-status">
+                        <option value="pending" selected>Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('schedule-modal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Ticket Modal -->
+    <div id="view-ticket-modal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeModal('view-ticket-modal')">&times;</span>
+            <div id="ticket-details"></div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-container">
+            <p>&copy; 2024 Datche Ticketing Service. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+                <a href="#">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Load scripts after page loads -->
+    <script>
+        // Initialize after everything is loaded
+        window.addEventListener('load', function() {
+            console.log('🔍 Checking Supabase library...');
+            console.log('window.supabase type:', typeof window.supabase);
+            console.log('window.supabase.createClient type:', typeof window.supabase?.createClient);
+            
+            if (typeof window.supabase === 'undefined') {
+                alert('❌ Error: Supabase library failed to load.\n\nPlease check your internet connection and reload the page.');
+                console.error('Supabase library not loaded!');
+            } else {
+                console.log('✅ Supabase library loaded successfully');
+            }
+        });
+    </script>
+    <script src="config.js" defer></script>
+    <script src="app.js" defer></script>
+</body>
+</html>
