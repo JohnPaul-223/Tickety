@@ -35,8 +35,7 @@
         document.addEventListener('visibilitychange', checkStorageAccessExpiry);
         document.addEventListener('pointerdown', checkStorageAccessExpiry, { passive: true });
         document.getElementById('storage-access-request-form')?.addEventListener('submit', requestStorageAccess);
-        document.getElementById('storage-request-refresh')?.addEventListener('click', loadStorageRequestStatus);
-        document.getElementById('storage-access-redeem-form')?.addEventListener('submit', redeemStorageAccess);
+        document.getElementById('storage-access-code')?.addEventListener('input', updateStorageAccessButton);
         document.getElementById('storage-admin-refresh')?.addEventListener('click', loadAdminStorageRequests);
         document.getElementById('storage-admin-copy-code')?.addEventListener('click', copyAdminStorageCode);
         document.getElementById('storage-lock-button')?.addEventListener('click', () => lockStorageAccess('Storage was locked.'));
@@ -61,6 +60,11 @@
         document.getElementById('credential-new-button')?.addEventListener('click', () => openCredentialEditor());
         document.getElementById('credential-cancel-button')?.addEventListener('click', closeCredentialEditor);
         document.getElementById('credential-form')?.addEventListener('submit', saveCredential);
+    }
+
+    function updateStorageAccessButton() {
+        const hasCode = Boolean(document.getElementById('storage-access-code').value.trim());
+        document.getElementById('storage-request-button').textContent = hasCode ? 'Unlock Storage' : 'Request access code';
     }
 
     function setStorageFolder(folder) {
@@ -108,7 +112,6 @@
             const accountEmail = data.user.email || '';
             const isAdmin = accountEmail.toLowerCase() === STORAGE_ADMIN_EMAIL;
             document.getElementById('storage-request-email').value = accountEmail;
-            document.getElementById('storage-unlock-email').value = accountEmail;
             document.getElementById('storage-admin-panel').hidden = !isAdmin;
             if (isAdmin) await loadAdminStorageRequests();
 
@@ -133,11 +136,14 @@
             if (filesLoaded) setStorageMessage('');
         } catch (error) {
             lockStorageAccess();
-            setStorageAccessMessage('storage-unlock-message', error.message || 'Could not check Storage access. Try again.', true);
+            setStorageAccessMessage('storage-request-message', error.message || 'Could not check Storage access. Try again.', true);
         }
     }
 
     async function requestStorageAccess(event) {
+        if (document.getElementById('storage-access-code').value.trim()) {
+            return redeemStorageAccess(event);
+        }
         event.preventDefault();
         const button = document.getElementById('storage-request-button');
         const email = document.getElementById('storage-request-email').value.trim();
@@ -188,11 +194,11 @@
     async function redeemStorageAccess(event) {
         event.preventDefault();
         const form = event.currentTarget;
-        const button = document.getElementById('storage-unlock-button');
-        const email = document.getElementById('storage-unlock-email').value.trim();
+        const button = document.getElementById('storage-request-button');
+        const email = document.getElementById('storage-request-email').value.trim();
         const code = document.getElementById('storage-access-code').value.trim();
         button.disabled = true;
-        setStorageAccessMessage('storage-unlock-message', 'Checking your access code…');
+        setStorageAccessMessage('storage-request-message', 'Checking your access code…');
         try {
             const { error } = await window.supabase.rpc('redeem_storage_access', {
                 p_email: email,
@@ -201,13 +207,11 @@
             if (error) throw error;
             form.reset();
             const { data } = await window.supabase.auth.getUser();
-            if (data.user?.email) {
-                document.getElementById('storage-request-email').value = data.user.email;
-                document.getElementById('storage-unlock-email').value = data.user.email;
-            }
+            if (data.user?.email) document.getElementById('storage-request-email').value = data.user.email;
+            updateStorageAccessButton();
             await loadStoragePage();
         } catch (error) {
-            setStorageAccessMessage('storage-unlock-message', error.message || 'That code is invalid or expired.', true);
+            setStorageAccessMessage('storage-request-message', error.message || 'That code is invalid or expired.', true);
         } finally {
             button.disabled = false;
         }
@@ -338,11 +342,11 @@
                 try {
                     const { error } = await window.supabase.rpc('lock_storage_access');
                     if (error) {
-                        setStorageAccessMessage('storage-unlock-message', 'Storage is locked in this tab, but the server could not revoke this session. It will expire automatically within 10 minutes.', true);
+                        setStorageAccessMessage('storage-request-message', 'Storage is locked in this tab, but the server could not revoke this session. It will expire automatically within 10 minutes.', true);
                     }
                 } catch (error) {
                     console.warn('Could not revoke Storage access immediately.', error);
-                    setStorageAccessMessage('storage-unlock-message', 'Storage is locked in this tab, but the server could not revoke this session. It will expire automatically within 10 minutes.', true);
+                    setStorageAccessMessage('storage-request-message', 'Storage is locked in this tab, but the server could not revoke this session. It will expire automatically within 10 minutes.', true);
                 }
             })();
         }
@@ -355,10 +359,11 @@
         storagePreviewUrls = [];
         document.getElementById('storage-files-list')?.replaceChildren();
         document.getElementById('storage-access-code').value = '';
+        updateStorageAccessButton();
         document.getElementById('storage-private-content').hidden = true;
         document.getElementById('storage-access-gate').hidden = false;
         lockStorageVault();
-        if (message) setStorageAccessMessage('storage-unlock-message', message);
+        if (message) setStorageAccessMessage('storage-request-message', message);
     }
 
     function resetStorageIdentity() {
@@ -366,7 +371,7 @@
         currentUserId = null;
         document.getElementById('storage-admin-panel').hidden = true;
         document.getElementById('storage-request-email').value = '';
-        document.getElementById('storage-unlock-email').value = '';
+        updateStorageAccessButton();
         clearTimeout(adminCodeTimer);
         adminCodeTimer = null;
         adminCodeExpiresAt = null;

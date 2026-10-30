@@ -3380,6 +3380,15 @@ body.dark-mode .usage-badge,
     margin-bottom: 1.25rem;
 }
 
+.storage-access-single {
+    grid-template-columns: minmax(0, 540px);
+    justify-content: center;
+}
+
+.storage-access-single .storage-access-panel {
+    width: 100%;
+}
+
 .storage-access-panel h2,
 .storage-admin-header h2 {
     margin: .25rem 0 .45rem;
