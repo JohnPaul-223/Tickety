@@ -101,3 +101,17 @@ Your ticketing system is ready to deploy and use!
 ---
 
 **Made with ❤️ for better client support management**
+
+## Secure sign-in setup
+
+The app now uses Supabase Auth for email and password sign-in. Self-service sign-up is not offered in the page; create or invite team accounts from Supabase Auth.
+
+Before deploying the login page:
+
+1. Run `supabase-auth-security.sql` in the Supabase SQL Editor. This enables row-level security for tickets, schedules, and ticket image records, and makes the ticket and schedule image buckets private.
+2. In Supabase Auth settings, disable public user sign-ups and set the Site URL and allowed redirect URL to `https://dat-tickety.vercel.app`. Password reset links return to the app origin, which must be allowed. The screenshots show this setting is already in place.
+3. Invite or create the team members who should be able to sign in.
+
+The provided policies use a shared-team model: every authenticated team member can read and manage all tickets, schedules, and attachments. Use additional owner or role policies if the app later needs different access for each user.
+
+The browser contains the Supabase publishable key by design. It does not grant database access by itself; the SQL policies above enforce authenticated access in Supabase.

@@ -13,6 +13,90 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+    <section id="auth-screen" class="auth-screen" aria-labelledby="auth-title">
+        <canvas id="matrix-canvas" class="matrix-canvas" aria-hidden="true"></canvas>
+        <div class="auth-vignette" aria-hidden="true"></div>
+        <div class="auth-layout">
+            <div class="auth-intro">
+                <a class="auth-brand" href="#" aria-label="Datche home">
+                    <span class="auth-brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" fill="none">
+                            <path d="M16 3 4 9.5v13L16 29l12-6.5v-13L16 3Z" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M16 9 10 12.3v7.4l6 3.3 6-3.3v-7.4L16 9Z" fill="currentColor" opacity=".7"/>
+                        </svg>
+                    </span>
+                    <span>DATCHE<span class="auth-brand-dot">.</span></span>
+                </a>
+                <div class="auth-copy">
+                    <p class="auth-eyebrow"><span class="auth-live-dot"></span> SUPPORT OPERATIONS</p>
+                    <h1>Every issue.<br><span>In focus.</span></h1>
+                    <p class="auth-description">Your team's command center for tickets, schedules, and the work that keeps everything moving.</p>
+                </div>
+                <div class="auth-system-status"><span class="auth-live-dot"></span><span>SECURE WORKSPACE</span><span class="auth-status-divider">/</span><span>AUTHENTICATION REQUIRED</span></div>
+            </div>
+
+            <div class="auth-card-wrap">
+                <div class="auth-card">
+                    <div class="auth-card-topline"><span>IDENTITY VERIFICATION</span><span>01 <i>/</i> 01</span></div>
+                    <div class="auth-card-heading">
+                        <div class="auth-lock-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        </div>
+                        <div>
+                            <p class="auth-kicker">WELCOME BACK</p>
+                    <h2 id="auth-title">Sign in to Datche</h2>
+                        </div>
+                    </div>
+                    <p id="auth-description" class="auth-card-description">Use your authorized team account to continue.</p>
+
+                    <form id="login-form" class="auth-form">
+                        <div class="auth-field">
+                            <label for="login-email">EMAIL ADDRESS</label>
+                            <div class="auth-input-wrap">
+                                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="m3.5 5 6.5 5 6.5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <input id="login-email" name="email" type="email" placeholder="you@company.com" autocomplete="username" inputmode="email" maxlength="254" required>
+                            </div>
+                        </div>
+                        <div class="auth-field">
+                            <div class="auth-label-row"><label for="login-password">PASSWORD</label><button id="forgot-password" class="auth-text-button" type="button">Forgot password?</button></div>
+                            <div class="auth-input-wrap">
+                                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="8" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 8V5.5a3.5 3.5 0 1 1 7 0V8M10 12v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                                <input id="login-password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" maxlength="256" required>
+                                <button id="toggle-password" class="auth-password-toggle" type="button" aria-label="Show password" aria-pressed="false">
+                                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.2 10s2.8-5 7.8-5 7.8 5 7.8 5-2.8 5-7.8 5-7.8-5-7.8-5Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2.3" stroke="currentColor" stroke-width="1.4"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
+                        <button id="login-submit" class="auth-submit" type="submit"><span>Sign in securely</span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    </form>
+                    <form id="password-recovery-form" class="auth-form" hidden>
+                        <div class="auth-field">
+                            <label for="recovery-password">NEW PASSWORD</label>
+                            <div class="auth-input-wrap">
+                                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="8" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 8V5.5a3.5 3.5 0 1 1 7 0V8M10 12v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                                <input id="recovery-password" name="password" type="password" placeholder="At least 12 characters" autocomplete="new-password" minlength="12" maxlength="256" required>
+                            </div>
+                        </div>
+                        <div class="auth-field">
+                            <label for="recovery-password-confirm">CONFIRM NEW PASSWORD</label>
+                            <div class="auth-input-wrap">
+                                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="8" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 8V5.5a3.5 3.5 0 1 1 7 0V8M10 12v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                                <input id="recovery-password-confirm" name="password-confirm" type="password" placeholder="Re-enter new password" autocomplete="new-password" minlength="12" maxlength="256" required>
+                            </div>
+                        </div>
+                        <p id="recovery-message" class="auth-message" role="status" aria-live="polite"></p>
+                        <button id="recovery-submit" class="auth-submit" type="submit"><span>Update password</span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    </form>
+                    <div class="auth-card-footer"><span class="auth-footer-lock" aria-hidden="true">▣</span> Encrypted sign-in <span class="auth-status-divider">·</span> Supabase Auth</div>
+                </div>
+                <p class="auth-access-note">Access is limited to invited team members. Contact your administrator if you need an account.</p>
+            </div>
+        </div>
+        <div class="auth-corner auth-corner-tl" aria-hidden="true"></div><div class="auth-corner auth-corner-br" aria-hidden="true"></div>
+    </section>
+
+    <div id="app-shell" class="app-shell" hidden>
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
@@ -55,6 +139,7 @@
                     Database
                 </a></li>
             </ul>
+            <div class="nav-account"><span id="signed-in-email" class="signed-in-email"></span><button id="sign-out-button" class="sign-out-button" type="button">Sign out</button></div>
             <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
                 <span class="theme-icon">🌙</span>
             </button>
@@ -695,6 +780,7 @@
             </div>
         </div>
     </footer>
+    </div>
 
     <!-- Load scripts after page loads -->
     <script>
@@ -713,5 +799,6 @@
         });
     </script>
     <script src="main.js" defer></script>
+    <script src="auth.js" defer></script>
 </body>
 </html>

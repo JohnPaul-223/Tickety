@@ -1,67 +1,34 @@
-﻿// ==================== config.js ====================
-
-// Supabase Configuration
-// Wait for Supabase library to be available
+﻿// ==================== Supabase Configuration ====================
+// The publishable key is safe to expose in a browser. Database access is
+// restricted by the RLS policies in supabase-auth-security.sql.
 (function initializeSupabase() {
     'use strict';
-    
-    console.log('ðŸ”§ Initializing Supabase configuration...');
-    console.log('ðŸ“¦ window.supabase available:', typeof window.supabase);
 
-    // Check if Supabase library is loaded
-    if (typeof window.supabase === 'undefined') {
-        console.error('âŒ Supabase library not loaded!');
-        console.error('ðŸ’¡ The @supabase/supabase-js library must be loaded first');
-        console.error('ðŸŒ Check your internet connection');
-        alert('Error: Supabase library not loaded. Please check your internet connection and reload.');
+    const supabaseLibrary = window.supabase;
+    if (!supabaseLibrary || typeof supabaseLibrary.createClient !== 'function') {
+        console.error('Supabase library failed to load. Check the network connection and reload.');
         return;
     }
 
     const SUPABASE_URL = 'https://vvdhzzrpuwppsxqioeat.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_riVW4Au_E9MwnFbAaqwPUA_Oq-wbQ6Y'; // Replace this with your actual anon/public key from Supabase settings
+    const SUPABASE_ANON_KEY = 'sb_publishable_riVW4Au_E9MwnFbAaqwPUA_Oq-wbQ6Y';
 
-    // Create Supabase client and make it globally available
     try {
-        window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        console.log('âœ… Supabase client created successfully');
-        console.log('ðŸ“¡ Project URL:', SUPABASE_URL);
-        console.log('ðŸ”— Client type:', typeof window.supabase);
-        console.log('ðŸ”— .from() available:', typeof window.supabase.from);
-        
-        // Test connection
-        window.supabase
-            .from('tickets')
-            .select('count')
-            .then(({ data, error }) => {
-                if (error) {
-                    console.error('âŒ Database connection error:', error.message);
-                    
-                    if (error.message.includes('relation') || error.message.includes('does not exist')) {
-                        alert('âš ï¸ Database tables not found!\n\nPlease run the supabase-setup.sql script in your Supabase SQL Editor.\n\nCheck SUPABASE_SETUP_GUIDE.md for instructions.');
-                    }
-                } else {
-                    console.log('âœ… Database connection successful!');
-                    console.log('ðŸŽ‰ Ticketing system ready!');
-                }
-            });
-            
-        // Clear old localStorage data
-        if (localStorage.getItem('tickets') || localStorage.getItem('schedule')) {
-            console.log('ðŸ§¹ Clearing old localStorage data...');
-            localStorage.removeItem('tickets');
-            localStorage.removeItem('schedule');
-        }
-        
+        window.supabase = supabaseLibrary.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true,
+                flowType: 'pkce'
+            }
+        });
     } catch (error) {
-        console.error('âŒ Failed to create Supabase client:', error);
-        alert('Error initializing Supabase: ' + error.message);
+        console.error('Failed to initialize Supabase:', error);
     }
 })();
 
 
 // ==================== app.js ====================
-
 // Global state
 let currentFilter = 'all';
 let allTickets = [];
@@ -76,21 +43,37 @@ let searchQuery = '';
 // Get Supabase client reference
 const getSupabase = () => window.supabase;
 
-// Initialize app
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('ðŸ“± DOM Content Loaded');
-    console.log('ðŸ” Checking Supabase in app.js:', typeof window.supabase);
-    console.log('ðŸ” Supabase.from available:', typeof window.supabase?.from);
-    
-    if (typeof window.supabase === 'undefined' || typeof window.supabase.from !== 'function') {
-        console.error('âŒ Supabase not available in app.js!');
-        alert('Error: Supabase client not initialized. Please reload the page.');
-        return;
+// Image references in older rows are public Supabase URLs. Convert those URLs
+// to short-lived links so the buckets can remain private after sign-in.
+async function getSecureImageUrl(imageReference) {
+    if (!imageReference) return null;
+
+    let bucket;
+    let path;
+    const storedPath = /^(ticket-images|images):(.+)$/.exec(imageReference);
+    if (storedPath) {
+        [, bucket, path] = storedPath;
+    } else {
+        try {
+            const url = new URL(imageReference, window.location.origin);
+            const objectPath = /\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)$/.exec(url.pathname);
+            if (!['https:', 'http:'].includes(url.protocol)) return null;
+            if (!objectPath) {
+                return url.protocol === 'https:' || url.origin === window.location.origin ? url.href : null;
+            }
+            bucket = decodeURIComponent(objectPath[1]);
+            path = decodeURIComponent(objectPath[2]);
+        } catch (error) {
+            return null;
+        }
     }
-    
-    initializeTheme();
-    loadDashboard();
-});
+
+    if (!['ticket-images', 'images'].includes(bucket)) return null;
+    const { data, error } = await window.supabase.storage.from(bucket).createSignedUrl(path, 5 * 60);
+    return error ? null : data.signedUrl;
+}
+
+// The authentication gate in auth.js starts the application after a valid session is confirmed.
 
 // Theme Management
 function initializeTheme() {
@@ -1398,16 +1381,20 @@ function clearTicketImage() {
     resetTicketImage();
 }
 
-function loadTicketImage(imageUrl) {
+async function loadTicketImage(imageUrl) {
     revokeTicketImagePreview();
     ticketImageUrl = imageUrl || null;
+    const currentImageUrl = ticketImageUrl;
 
     const input = document.getElementById('ticket-image');
     if (input) {
         input.value = '';
     }
 
-    showTicketImagePreview(ticketImageUrl);
+    const secureImageUrl = await getSecureImageUrl(currentImageUrl);
+    if (ticketImageUrl === currentImageUrl) {
+        showTicketImagePreview(secureImageUrl);
+    }
 }
 
 async function uploadTicketImage(file) {
@@ -1426,8 +1413,7 @@ async function uploadTicketImage(file) {
         throw error;
     }
 
-    const { data } = window.supabase.storage.from('ticket-images').getPublicUrl(path);
-    return data.publicUrl;
+    return `ticket-images:${path}`;
 }
 
 // Modal functions
@@ -2133,7 +2119,10 @@ async function loadTicketImages(ticketId) {
         return [];
     }
 
-    return data || [];
+    return Promise.all((data || []).map(async image => ({
+        ...image,
+        image_url: await getSecureImageUrl(image.image_url)
+    })));
 }
 
 // Override the original showNewTicketModal to clear images
@@ -2302,6 +2291,7 @@ window.viewTicket = async function(id) {
         const images = await loadTicketImages(id);
 
         const container = document.getElementById('ticket-details');
+        const legacyImageUrl = await getSecureImageUrl(ticket.image_url);
         
         // Render ticket details
         container.innerHTML = `
@@ -2317,6 +2307,14 @@ window.viewTicket = async function(id) {
                 <p><strong>Created:</strong> ${new Date(ticket.created_at).toLocaleString()}</p>
                 ${ticket.due_date ? `<p><strong>Due Date:</strong> ${new Date(ticket.due_date).toLocaleString()}</p>` : ''}
                 ${ticket.notes ? `<p><strong>Notes:</strong><br>${ticket.notes}</p>` : ''}
+                ${legacyImageUrl ? `
+                    <div class="ticket-image-fullview-wrap">
+                        <h3>Ticket image</h3>
+                        <a href="${legacyImageUrl}" target="_blank" rel="noopener noreferrer">
+                            <img class="ticket-image-fullview" src="${legacyImageUrl}" alt="Image attached to ticket #${ticket.id}">
+                        </a>
+                    </div>
+                ` : ''}
                 
                 ${images.length > 0 ? `
                     <div style="margin-top: 1.5rem;">
@@ -3213,6 +3211,13 @@ async function viewTableDetails(tableName) {
 
         if (error) throw error;
 
+        const displayData = tableName === 'ticket_images'
+            ? await Promise.all((data || []).map(async row => ({
+                ...row,
+                image_url: await getSecureImageUrl(row.image_url)
+            })))
+            : data;
+
         // Create modal content
         let modalContent = `
             <h2>${tableName.charAt(0).toUpperCase() + tableName.slice(1)} - Recent Records</h2>
@@ -3225,7 +3230,7 @@ async function viewTableDetails(tableName) {
             // Special gallery view for images table
             modalContent += `
                 <div class="image-gallery-grid">
-                    ${data.map(row => `
+                    ${displayData.map(row => `
                         <div class="image-gallery-tile" onclick="openImageFullscreen('${row.image_url}', ${row.ticket_id}, '${row.created_at}')">
                             <img src="${row.image_url}" alt="Ticket ${row.ticket_id} image" loading="lazy">
                             <div class="image-tile-overlay">
@@ -3674,18 +3679,19 @@ function clearScheduleImage() {
     showNotification('Image cleared', 'info');
 }
 
-function loadScheduleImage(imageUrl) {
+async function loadScheduleImage(imageUrl) {
     if (!imageUrl) {
         resetScheduleImage();
         return;
     }
     
     scheduleImageUrl = imageUrl;
+    const secureImageUrl = await getSecureImageUrl(imageUrl);
     const previewContainer = document.getElementById('schedule-image-preview');
-    if (previewContainer) {
+    if (previewContainer && scheduleImageUrl === imageUrl && secureImageUrl) {
         previewContainer.innerHTML = `
             <div style="position: relative; display: inline-block;">
-                <img src="${imageUrl}" alt="Current schedule image" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid var(--border-color);">
+                <img src="${secureImageUrl}" alt="Current schedule image" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid var(--border-color);">
                 <button type="button" onclick="clearScheduleImage()" style="position: absolute; top: 5px; right: 5px; background: var(--error-color); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; line-height: 1;">&times;</button>
             </div>
         `;
@@ -3704,11 +3710,7 @@ async function uploadScheduleImage(file) {
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = window.supabase.storage
-            .from('images')
-            .getPublicUrl(filePath);
-
-        return publicUrl;
+        return `images:${filePath}`;
     } catch (error) {
         console.error('Error uploading schedule image:', error);
         showNotification('Failed to upload image: ' + error.message, 'error');
