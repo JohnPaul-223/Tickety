@@ -3389,6 +3389,11 @@ body.dark-mode .usage-badge,
     width: 100%;
 }
 
+#storage-page > .page-header {
+    justify-content: center;
+    text-align: center;
+}
+
 .storage-access-panel h2,
 .storage-admin-header h2 {
     margin: .25rem 0 .45rem;
