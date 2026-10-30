@@ -452,40 +452,91 @@
                     <span id="storage-session-expiry">Storage access expires in 10 minutes.</span>
                     <button id="storage-lock-button" class="btn btn-secondary btn-sm" type="button">Lock Storage</button>
                 </div>
-            <div class="storage-grid">
-                <section class="storage-panel" aria-labelledby="storage-files-title">
-                    <div class="storage-panel-header">
+            <div class="storage-explorer">
+                <aside class="storage-explorer-sidebar" aria-label="Storage folders">
+                    <p class="storage-sidebar-heading">QUICK ACCESS</p>
+                    <nav id="storage-folder-navigation" class="storage-folder-navigation">
+                        <button class="storage-folder-link is-active" type="button" data-storage-folder="Home" aria-current="page">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m2.5 9 7.5-6 7.5 6v7.5a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1V9Z"/><path d="M7.5 17.5v-5h5v5"/></svg><span>Home</span>
+                        </button>
+                        <button class="storage-folder-link" type="button" data-storage-folder="Documents">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6l4 4v11H5a1.5 1.5 0 0 1-1.5-1.5V4A1.5 1.5 0 0 1 5 2.5Z"/><path d="M11 2.5v4h4M7 11h6M7 14h6"/></svg><span>Documents</span>
+                        </button>
+                        <button class="storage-folder-link" type="button" data-storage-folder="Photos">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><circle cx="7" cy="8" r="1.5"/><path d="m3 14 4.5-4 3 2 2-1.5 4.5 4"/></svg><span>Pictures</span>
+                        </button>
+                        <button class="storage-folder-link" type="button" data-storage-folder="Work">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="6" width="15" height="11" rx="1.5"/><path d="M7 6V4.5A1.5 1.5 0 0 1 8.5 3h3A1.5 1.5 0 0 1 13 4.5V6M2.5 10h15M8 9.5v2h4v-2"/></svg><span>Work</span>
+                        </button>
+                        <button class="storage-folder-link" type="button" data-storage-folder="Personal">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="6.5" r="3"/><path d="M4 17a6 6 0 0 1 12 0"/></svg><span>Personal</span>
+                        </button>
+                        <button class="storage-folder-link" type="button" data-storage-folder="Other">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 6h6l1.5 1.5h7.5v8.75a1.25 1.25 0 0 1-1.25 1.25H3.75a1.25 1.25 0 0 1-1.25-1.25V6Z"/><path d="M2.5 6V4.75A1.25 1.25 0 0 1 3.75 3.5h4L9.5 5h5.25A1.25 1.25 0 0 1 16 6.25V7"/></svg><span>Other</span>
+                        </button>
+                        <span class="storage-sidebar-divider" aria-hidden="true"></span>
+                        <button class="storage-folder-link" type="button" data-storage-folder="Credentials">
+                            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="7" cy="8" r="4"/><path d="m10 11 6.5 6.5m-2.5-2.5 2-2m-4 0 2-2"/></svg><span>Passwords &amp; credentials</span>
+                        </button>
+                    </nav>
+                    <p class="storage-sidebar-footnote">Private to your account</p>
+                </aside>
+
+                <section id="storage-files-view" class="storage-explorer-main" aria-labelledby="storage-files-title">
+                    <div class="storage-explorer-titlebar">
                         <div>
                             <p class="storage-kicker">PRIVATE TO YOUR ACCOUNT</p>
-                            <h2 id="storage-files-title">Files &amp; photos</h2>
-                            <p class="storage-panel-copy">Upload documents, images, and other files. Only your signed-in account can access them.</p>
+                            <h2 id="storage-files-title">Storage</h2>
                         </div>
                         <button id="storage-upload-button" class="btn btn-primary" type="button">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 11V2m0 0L4.5 5.5M8 2l3.5 3.5M2.5 10v3.5h11V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            Upload files
+                            Upload
                         </button>
                         <input id="storage-file-input" class="storage-file-input" type="file" multiple aria-label="Choose files to upload">
                     </div>
-                    <div class="storage-toolbar">
-                        <label class="storage-category-label" for="storage-file-category">Save in</label>
-                        <select id="storage-file-category" class="storage-category-select">
+                    <div class="storage-explorer-toolbar">
+                        <div class="storage-breadcrumb" aria-label="Current folder">
+                            <span>Storage</span><span aria-hidden="true">›</span><strong id="storage-current-folder">Home</strong>
+                        </div>
+                        <div class="storage-view-switch" aria-label="File view">
+                            <button id="storage-view-details" class="is-active" type="button" aria-label="Details view" aria-pressed="true" title="Details view">
+                                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="5" cy="5" r=".6"/><circle cx="5" cy="10" r=".6"/><circle cx="5" cy="15" r=".6"/></svg>
+                            </button>
+                            <button id="storage-view-icons" type="button" aria-label="Icon view" aria-pressed="false" title="Icon view">
+                                <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="storage-explorer-controls">
+                        <label class="storage-category-label" for="storage-file-category">Upload to</label>
+                        <select id="storage-file-category" class="storage-category-select" aria-label="Choose destination folder for uploads">
                             <option value="Documents">Documents</option>
-                            <option value="Photos">Photos</option>
+                            <option value="Photos">Pictures</option>
                             <option value="Work">Work</option>
                             <option value="Personal">Personal</option>
                             <option value="Other">Other</option>
                         </select>
                         <div class="storage-search-wrap">
                             <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.8" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                            <input id="storage-file-search" type="search" placeholder="Search files" aria-label="Search stored files">
+                            <input id="storage-file-search" type="search" placeholder="Search this folder" aria-label="Search stored files">
                         </div>
+                        <label class="storage-sort-label" for="storage-sort-select">Sort by</label>
+                        <select id="storage-sort-select" class="storage-category-select" aria-label="Sort files">
+                            <option value="name">Name</option>
+                            <option value="date">Date added</option>
+                            <option value="type">Type</option>
+                            <option value="size">Size</option>
+                        </select>
                     </div>
                     <p id="storage-file-message" class="storage-message" role="status" aria-live="polite"></p>
-                    <div id="storage-files-list" class="storage-files-grid"></div>
-                    <p class="storage-footnote">Uploads are private and subject to your Supabase project's storage limits.</p>
+                    <div id="storage-files-header" class="storage-files-header">
+                        <span>Name</span><span>Date added</span><span>Type</span><span>Size</span><span>Folder</span><span></span>
+                    </div>
+                    <div id="storage-files-list" class="storage-files-list"></div>
+                    <div class="storage-explorer-footer"><span id="storage-file-count">0 items</span><span>Uploads are private and subject to your Supabase project's storage limits.</span></div>
                 </section>
 
-                <section class="storage-panel storage-credentials-panel" aria-labelledby="credential-vault-title">
+                <section id="storage-credentials-view" class="storage-panel storage-credentials-panel" aria-labelledby="credential-vault-title" hidden>
                     <div class="storage-panel-header">
                         <div>
                             <p class="storage-kicker">ENCRYPTED CREDENTIAL VAULT</p>

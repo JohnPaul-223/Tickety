@@ -15,6 +15,9 @@
     let vaultKeyUserId = null;
     let credentialEntries = [];
     let storageFiles = [];
+    let storageCurrentFolder = 'Home';
+    let storageViewMode = 'details';
+    let storageSortMode = 'name';
     let storageRenderVersion = 0;
     let storagePreviewUrls = [];
     let vaultGeneration = 0;
@@ -37,6 +40,16 @@
         document.getElementById('storage-admin-refresh')?.addEventListener('click', loadAdminStorageRequests);
         document.getElementById('storage-admin-copy-code')?.addEventListener('click', copyAdminStorageCode);
         document.getElementById('storage-lock-button')?.addEventListener('click', () => lockStorageAccess('Storage was locked.'));
+        document.getElementById('storage-folder-navigation')?.addEventListener('click', event => {
+            const button = event.target.closest('button[data-storage-folder]');
+            if (button) setStorageFolder(button.dataset.storageFolder);
+        });
+        document.getElementById('storage-sort-select')?.addEventListener('change', event => {
+            storageSortMode = event.currentTarget.value;
+            renderStorageFiles();
+        });
+        document.getElementById('storage-view-details')?.addEventListener('click', () => setStorageViewMode('details'));
+        document.getElementById('storage-view-icons')?.addEventListener('click', () => setStorageViewMode('icons'));
         document.getElementById('storage-upload-button')?.addEventListener('click', () => {
             document.getElementById('storage-file-input')?.click();
         });
@@ -48,6 +61,36 @@
         document.getElementById('credential-new-button')?.addEventListener('click', () => openCredentialEditor());
         document.getElementById('credential-cancel-button')?.addEventListener('click', closeCredentialEditor);
         document.getElementById('credential-form')?.addEventListener('submit', saveCredential);
+    }
+
+    function setStorageFolder(folder) {
+        storageCurrentFolder = folder;
+        document.querySelectorAll('#storage-folder-navigation [data-storage-folder]').forEach(button => {
+            const active = button.dataset.storageFolder === folder;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-current', active ? 'page' : 'false');
+        });
+
+        const folderLabel = folder === 'Photos' ? 'Pictures' : folder === 'Credentials' ? 'Passwords & credentials' : folder;
+        document.getElementById('storage-current-folder').textContent = folderLabel;
+        if (['Documents', 'Photos', 'Work', 'Personal', 'Other'].includes(folder)) {
+            document.getElementById('storage-file-category').value = folder;
+        }
+        document.getElementById('storage-file-search').value = '';
+        document.getElementById('storage-files-view').hidden = folder === 'Credentials';
+        document.getElementById('storage-credentials-view').hidden = folder !== 'Credentials';
+        setStorageMessage('');
+        if (folder !== 'Credentials') renderStorageFiles();
+    }
+
+    function setStorageViewMode(mode) {
+        storageViewMode = mode;
+        const details = mode === 'details';
+        document.getElementById('storage-view-details').classList.toggle('is-active', details);
+        document.getElementById('storage-view-details').setAttribute('aria-pressed', String(details));
+        document.getElementById('storage-view-icons').classList.toggle('is-active', !details);
+        document.getElementById('storage-view-icons').setAttribute('aria-pressed', String(!details));
+        renderStorageFiles();
     }
 
     async function loadStoragePage() {
@@ -357,7 +400,7 @@
 
         if (requestedUserId !== currentUserId || requestedExpiry !== storageAccessExpiresAt || Date.now() >= requestedExpiry) return false;
         storageFiles = data || [];
-        await renderStorageFiles();
+        if (storageCurrentFolder !== 'Credentials') await renderStorageFiles();
         return true;
     }
 
@@ -367,16 +410,27 @@
         const renderVersion = ++storageRenderVersion;
         storagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
         storagePreviewUrls = [];
+        const header = document.getElementById('storage-files-header');
+        header.hidden = storageViewMode === 'icons';
+        container.classList.toggle('is-grid', storageViewMode === 'icons');
         const query = (document.getElementById('storage-file-search')?.value || '').trim().toLowerCase();
-        const visibleFiles = storageFiles.filter(file =>
-            `${file.original_name} ${file.category}`.toLowerCase().includes(query)
-        );
+        const visibleFiles = storageFiles
+            .filter(file => storageCurrentFolder === 'Home' || file.category === storageCurrentFolder)
+            .filter(file => `${file.original_name} ${file.category}`.toLowerCase().includes(query));
+
+        visibleFiles.sort((left, right) => {
+            if (storageSortMode === 'date') return new Date(right.created_at) - new Date(left.created_at);
+            if (storageSortMode === 'type') return fileType(left).localeCompare(fileType(right)) || left.original_name.localeCompare(right.original_name);
+            if (storageSortMode === 'size') return Number(right.size_bytes) - Number(left.size_bytes);
+            return left.original_name.localeCompare(right.original_name, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        document.getElementById('storage-file-count').textContent = `${visibleFiles.length} ${visibleFiles.length === 1 ? 'item' : 'items'}`;
 
         if (visibleFiles.length === 0) {
             container.replaceChildren();
             const empty = document.createElement('p');
             empty.className = 'storage-empty-state';
-            empty.textContent = query ? 'No files match that search.' : 'No files yet. Upload your first document or photo.';
+            empty.textContent = query ? 'No files match that search.' : storageFiles.length ? 'This folder is empty.' : 'This folder is empty. Upload a file to get started.';
             container.append(empty);
             return;
         }
@@ -389,14 +443,23 @@
     async function createStorageFileCard(file) {
         const requestedUserId = currentUserId;
         const requestedExpiry = storageAccessExpiresAt;
+        const requestedViewMode = storageViewMode;
+        const requestedRenderVersion = storageRenderVersion;
         const card = document.createElement('article');
-        card.className = 'storage-file-card';
+        card.className = requestedViewMode === 'icons' ? 'storage-file-tile' : 'storage-file-row';
+        card.tabIndex = 0;
+        card.setAttribute('aria-label', `${file.original_name}, ${fileType(file)}, ${formatFileSize(file.size_bytes)}`);
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.storage-file-row.is-selected, .storage-file-tile.is-selected').forEach(row => row.classList.remove('is-selected'));
+            card.classList.add('is-selected');
+        });
+        card.addEventListener('dblclick', () => downloadStorageFile(file));
 
         const preview = document.createElement('div');
         preview.className = 'storage-file-preview';
-        if (file.content_type?.startsWith('image/')) {
+        if (requestedViewMode === 'icons' && file.content_type?.startsWith('image/')) {
             const { data, error } = await window.supabase.storage.from(BUCKET).download(file.object_path);
-            if (!error && data && requestedUserId === currentUserId && requestedExpiry === storageAccessExpiresAt && Date.now() < requestedExpiry) {
+            if (!error && data && requestedUserId === currentUserId && requestedExpiry === storageAccessExpiresAt && requestedViewMode === storageViewMode && requestedRenderVersion === storageRenderVersion && Date.now() < requestedExpiry) {
                 const previewUrl = URL.createObjectURL(data);
                 storagePreviewUrls.push(previewUrl);
                 const image = document.createElement('img');
@@ -416,12 +479,33 @@
         const name = document.createElement('h3');
         name.textContent = file.original_name;
         name.title = file.original_name;
-        const metadata = document.createElement('p');
-        metadata.textContent = `${file.category} · ${formatFileSize(file.size_bytes)} · ${new Date(file.created_at).toLocaleDateString()}`;
-        info.append(name, metadata);
+        info.append(name);
+
+        if (requestedViewMode === 'icons') {
+            const metadata = document.createElement('p');
+            metadata.textContent = `${file.category} · ${formatFileSize(file.size_bytes)}`;
+            info.append(metadata);
+        } else {
+            const date = document.createElement('span');
+            date.className = 'storage-file-date';
+            date.textContent = new Date(file.created_at).toLocaleDateString();
+            const type = document.createElement('span');
+            type.className = 'storage-file-type';
+            type.textContent = fileType(file);
+            const size = document.createElement('span');
+            size.className = 'storage-file-size';
+            size.textContent = formatFileSize(file.size_bytes);
+            const category = document.createElement('span');
+            category.className = 'storage-file-category-cell';
+            category.textContent = file.category;
+            const nameCell = document.createElement('div');
+            nameCell.className = 'storage-file-name-cell';
+            nameCell.append(preview, info);
+            card.append(nameCell, date, type, size, category);
+        }
 
         const actions = document.createElement('div');
-        actions.className = 'storage-file-actions';
+        actions.className = 'storage-file-actions storage-file-row-actions';
         const download = document.createElement('button');
         download.type = 'button';
         download.className = 'btn btn-secondary btn-sm';
@@ -434,8 +518,15 @@
         remove.addEventListener('click', () => deleteStorageFile(file));
         actions.append(download, remove);
 
-        card.append(preview, info, actions);
+        if (requestedViewMode === 'icons') card.append(preview, info, actions);
+        else card.append(actions);
         return card;
+    }
+
+    function fileType(file) {
+        return file.content_type && file.content_type !== 'application/octet-stream'
+            ? file.content_type.split('/').pop().toUpperCase()
+            : file.original_name.includes('.') ? file.original_name.split('.').pop().toUpperCase() : 'FILE';
     }
 
     function createFileGlyph(file) {
@@ -967,10 +1058,11 @@
     }
 
     function formatFileSize(size) {
-        if (!Number.isFinite(size) || size <= 0) return '0 B';
+        const bytes = Number(size);
+        if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
         const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const unit = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
-        return `${(size / (1024 ** unit)).toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+        const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+        return `${(bytes / (1024 ** unit)).toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
     }
 
     window.loadStoragePage = loadStoragePage;

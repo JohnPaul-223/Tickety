@@ -3536,3 +3536,446 @@ body.dark-mode .usage-badge,
         flex-wrap: wrap;
     }
 }
+
+.storage-explorer {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    min-height: 500px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-xs);
+}
+
+.storage-explorer-sidebar {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem .65rem;
+    border-right: 1px solid var(--border-color);
+    background: var(--surface-muted);
+}
+
+.storage-sidebar-heading {
+    margin: .1rem .6rem .55rem;
+    color: var(--muted-text);
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+}
+
+.storage-folder-navigation {
+    display: grid;
+    gap: .2rem;
+}
+
+.storage-folder-link {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: .7rem;
+    padding: .62rem .65rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--dark-text);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: .78rem;
+    text-align: left;
+}
+
+.storage-folder-link:hover,
+.storage-folder-link.is-active {
+    color: var(--primary-color);
+    background: var(--primary-soft);
+}
+
+.storage-folder-link.is-active {
+    font-weight: 750;
+}
+
+.storage-folder-link svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.45;
+}
+
+.storage-folder-link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.storage-sidebar-divider {
+    height: 1px;
+    margin: .55rem .55rem;
+    background: var(--border-color);
+}
+
+.storage-sidebar-footnote {
+    margin: auto .6rem .1rem;
+    padding-top: 1rem;
+    color: var(--muted-text);
+    font-size: .68rem;
+}
+
+.storage-explorer-main {
+    min-width: 0;
+    padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.storage-explorer-titlebar,
+.storage-explorer-toolbar,
+.storage-explorer-controls {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.storage-explorer-titlebar {
+    justify-content: space-between;
+    padding-bottom: .85rem;
+}
+
+.storage-explorer-titlebar .storage-kicker {
+    margin-bottom: .2rem;
+}
+
+.storage-explorer-titlebar h2 {
+    margin: 0;
+    color: var(--dark-text);
+    font-size: 1.2rem;
+}
+
+.storage-explorer-titlebar .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.storage-explorer-toolbar {
+    justify-content: space-between;
+    min-height: 42px;
+    margin-bottom: .6rem;
+    padding: .3rem .5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--surface-muted);
+}
+
+.storage-breadcrumb {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: .55rem;
+    color: var(--muted-text);
+    font-size: .78rem;
+}
+
+.storage-breadcrumb strong {
+    overflow: hidden;
+    color: var(--dark-text);
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.storage-view-switch {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: .2rem;
+}
+
+.storage-view-switch button {
+    display: grid;
+    width: 32px;
+    height: 30px;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: var(--muted-text);
+    background: transparent;
+    cursor: pointer;
+}
+
+.storage-view-switch button:hover,
+.storage-view-switch button.is-active {
+    border-color: var(--border-color);
+    color: var(--primary-color);
+    background: var(--surface);
+}
+
+.storage-view-switch svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.5;
+}
+
+.storage-view-switch circle {
+    fill: currentColor;
+    stroke: none;
+}
+
+.storage-explorer-controls {
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: .75rem 0;
+}
+
+.storage-sort-label {
+    margin-left: auto;
+    color: var(--muted-text);
+    font-size: .74rem;
+}
+
+.storage-explorer-controls .storage-search-wrap {
+    flex: 1 1 170px;
+    margin-left: 0;
+}
+
+.storage-explorer-controls .storage-category-select {
+    min-height: 36px;
+    font-size: .75rem;
+}
+
+.storage-files-header,
+.storage-file-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 2fr) minmax(100px, 1fr) minmax(70px, .7fr) 70px 90px auto;
+    align-items: center;
+    gap: .65rem;
+    min-width: 690px;
+}
+
+.storage-files-header {
+    padding: .55rem .65rem;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--muted-text);
+    font-size: .68rem;
+    font-weight: 700;
+}
+
+.storage-files-list {
+    display: grid;
+    overflow-x: auto;
+}
+
+.storage-file-row {
+    min-height: 54px;
+    padding: .4rem .65rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--muted-text);
+    cursor: default;
+    font-size: .72rem;
+}
+
+.storage-file-row:hover,
+.storage-file-row.is-selected {
+    background: var(--primary-soft);
+}
+
+.storage-file-name-cell {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: .65rem;
+}
+
+.storage-file-name-cell .storage-file-preview {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    background: transparent;
+}
+
+.storage-file-name-cell .storage-file-glyph {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    max-width: none;
+    place-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--surface-muted);
+    font-size: .52rem;
+}
+
+.storage-file-name-cell .storage-file-info {
+    overflow: hidden;
+}
+
+.storage-file-name-cell .storage-file-info h3 {
+    margin: 0;
+    font-size: .76rem;
+    font-weight: 600;
+}
+
+.storage-file-date,
+.storage-file-type,
+.storage-file-size,
+.storage-file-category-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.storage-file-row-actions {
+    flex-wrap: nowrap;
+}
+
+.storage-file-row-actions .btn {
+    padding: .35rem .5rem;
+    font-size: .68rem;
+}
+
+.storage-explorer-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: .8rem;
+    padding: .7rem .2rem 0;
+    color: var(--muted-text);
+    font-size: .67rem;
+}
+
+.storage-files-list.is-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: .6rem;
+    overflow: visible;
+    padding-top: .7rem;
+}
+
+.storage-file-tile {
+    display: grid;
+    min-width: 0;
+    align-content: start;
+    gap: .5rem;
+    padding: .65rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: default;
+}
+
+.storage-file-tile:hover,
+.storage-file-tile.is-selected {
+    border-color: var(--primary-soft);
+    background: var(--primary-soft);
+}
+
+.storage-file-tile .storage-file-preview {
+    width: 100%;
+    height: 88px;
+}
+
+.storage-file-tile .storage-file-glyph {
+    font-size: .8rem;
+}
+
+.storage-file-tile .storage-file-info h3 {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.storage-file-tile .storage-file-info p {
+    margin-top: .25rem;
+}
+
+.storage-credentials-panel {
+    grid-column: 2;
+    min-width: 0;
+    margin: 0;
+}
+
+@media (max-width: 820px) {
+    .storage-explorer {
+        grid-template-columns: 176px minmax(0, 1fr);
+    }
+
+    .storage-sort-label {
+        display: none;
+    }
+}
+
+@media (max-width: 620px) {
+    .storage-explorer {
+        grid-template-columns: 1fr;
+    }
+
+    .storage-explorer-sidebar {
+        padding: .55rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .storage-sidebar-heading,
+    .storage-sidebar-footnote,
+    .storage-sidebar-divider {
+        display: none;
+    }
+
+    .storage-folder-navigation {
+        display: flex;
+        overflow-x: auto;
+        gap: .25rem;
+    }
+
+    .storage-folder-link {
+        flex: 0 0 auto;
+        gap: .4rem;
+        padding: .5rem;
+        font-size: .68rem;
+    }
+
+    .storage-folder-link svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .storage-credentials-panel {
+        grid-column: 1;
+    }
+
+    .storage-explorer-main {
+        padding: .8rem;
+    }
+
+    .storage-files-header {
+        display: none;
+    }
+
+    .storage-file-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-width: 0;
+    }
+
+    .storage-file-row > .storage-file-date,
+    .storage-file-row > .storage-file-type,
+    .storage-file-row > .storage-file-size,
+    .storage-file-row > .storage-file-category-cell {
+        display: none;
+    }
+
+    .storage-file-row-actions .btn-danger {
+        padding-inline: .4rem;
+    }
+
+    .storage-sort-label {
+        margin-left: 0;
+    }
+
+    .storage-explorer-footer {
+        flex-direction: column;
+    }
+}

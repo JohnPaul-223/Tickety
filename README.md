@@ -119,6 +119,7 @@ Tickets, schedules, and their existing attachments use a shared-team model. Stor
 - Storage is a restricted area. A signed-in team member requests access with the email on their account, then enters a one-time code provided by the admin.
 - The Storage administrator is `johnpaulcanopen@gmail.com`. This account can review requests and issue codes in the Storage page. Codes are single-use and expire after 10 minutes; a redeemed Storage session also expires after 10 minutes.
 - Upload files and photos into private, per-user storage folders.
+- Browse Storage in a file explorer layout with folder categories, search, sorting, and details or icon views.
 - Store account credentials in a separate vault encrypted in the browser with AES-GCM before they are sent to Supabase.
 - Choose a unique vault passphrase of at least 12 characters. The passphrase is never stored; credentials cannot be recovered if it is forgotten.
 - The credential vault locks when you sign out or after 15 minutes of inactivity. Storage access is also enforced by owner-specific database and object policies and ends when the 10-minute session expires.
