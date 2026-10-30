@@ -48,6 +48,8 @@
 
         if (eventName === 'PASSWORD_RECOVERY') {
             setRecoveryMode(true);
+            window.lockStorageAccess?.();
+            window.resetStorageIdentity?.();
             authScreen.hidden = false;
             appShell.hidden = true;
             startMatrix();
@@ -57,7 +59,9 @@
 
         if (!session?.user) {
             activeUserId = null;
-            window.lockStorageVault?.();
+            if (window.resetStorageIdentity) window.resetStorageIdentity();
+            else if (window.lockStorageAccess) window.lockStorageAccess();
+            else window.lockStorageVault?.();
             authScreen.hidden = false;
             appShell.hidden = true;
             startMatrix();
@@ -75,10 +79,17 @@
         if (email) email.textContent = session.user.email || 'Signed in';
 
         if (activeUserId === session.user.id) return;
+        if (activeUserId && activeUserId !== session.user.id) {
+            if (window.resetStorageIdentity) window.resetStorageIdentity();
+            else window.lockStorageAccess?.();
+        }
         activeUserId = session.user.id;
         if (!appInitialized) {
             initializeTheme();
             appInitialized = true;
+        }
+        if (document.getElementById('storage-page')?.classList.contains('active')) {
+            window.loadStoragePage?.();
         }
         await loadDashboard();
     }
@@ -197,6 +208,11 @@
         const button = document.getElementById('sign-out-button');
         button.disabled = true;
         try {
+            try {
+                await window.supabase.rpc('lock_storage_access');
+            } catch (accessError) {
+                console.warn('Could not revoke Storage access before sign-out.', accessError);
+            }
             const { error } = await window.supabase.auth.signOut();
             if (error) throw error;
         } catch (error) {

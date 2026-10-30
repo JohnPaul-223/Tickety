@@ -392,11 +392,66 @@
         <div id="storage-page" class="page">
             <div class="page-header">
                 <div>
-                    <h1>Storage</h1>
-                    <p class="page-subtitle">Keep private files, photos, and encrypted account credentials organized.</p>
+                    <h1>Restricted Storage</h1>
+                    <p class="page-subtitle">Request a time-limited access code to open private files and credentials.</p>
                 </div>
             </div>
 
+            <section id="storage-access-gate" class="storage-access-layout" aria-label="Request Storage access">
+                <section class="storage-panel storage-access-panel">
+                    <p class="storage-kicker">RESTRICTED AREA</p>
+                    <h2>Request Storage access</h2>
+                    <p class="storage-panel-copy">Enter the email address on your signed-in Tickety account. The admin will review your request and share a one-time code with you.</p>
+                    <form id="storage-access-request-form" class="vault-form">
+                        <label for="storage-request-email">Account email</label>
+                        <input id="storage-request-email" type="email" maxlength="254" autocomplete="email" required>
+                        <button id="storage-request-button" class="btn btn-primary" type="submit">Request access</button>
+                    </form>
+                    <p id="storage-request-message" class="storage-message" role="status" aria-live="polite"></p>
+                    <button id="storage-request-refresh" class="btn btn-secondary btn-sm" type="button">Check request status</button>
+                </section>
+
+                <section class="storage-panel storage-access-panel">
+                    <p class="storage-kicker">ONE-TIME CODE</p>
+                    <h2>Unlock Storage</h2>
+                    <p class="storage-panel-copy">Access codes expire after 10 minutes. Once unlocked, Storage closes automatically after 10 minutes.</p>
+                    <form id="storage-access-redeem-form" class="vault-form">
+                        <label for="storage-unlock-email">Account email</label>
+                        <input id="storage-unlock-email" type="email" maxlength="254" autocomplete="email" required>
+                        <label for="storage-access-code">Access code from the admin</label>
+                        <input id="storage-access-code" type="text" maxlength="32" inputmode="text" autocomplete="one-time-code" autocapitalize="characters" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX" required>
+                        <button id="storage-unlock-button" class="btn btn-primary" type="submit">Unlock for 10 minutes</button>
+                    </form>
+                    <p id="storage-unlock-message" class="storage-message" role="status" aria-live="polite"></p>
+                </section>
+            </section>
+
+            <section id="storage-admin-panel" class="storage-panel storage-admin-panel" aria-labelledby="storage-admin-title" hidden>
+                <div class="storage-admin-header">
+                    <div>
+                        <p class="storage-kicker">ADMIN ONLY</p>
+                        <h2 id="storage-admin-title">Access requests</h2>
+                        <p class="storage-panel-copy">Issue a one-time code and share it privately with the requester. Codes expire after 10 minutes and can be used once.</p>
+                    </div>
+                    <button id="storage-admin-refresh" class="btn btn-secondary btn-sm" type="button">Refresh requests</button>
+                </div>
+                <p id="storage-admin-message" class="storage-message" role="status" aria-live="polite"></p>
+                <div id="storage-admin-requests" class="storage-admin-requests"></div>
+                <div id="storage-admin-code-result" class="storage-admin-code-result" hidden>
+                    <div>
+                        <span>New access code</span>
+                        <code id="storage-admin-code"></code>
+                    </div>
+                    <button id="storage-admin-copy-code" class="btn btn-secondary btn-sm" type="button">Copy code</button>
+                    <p id="storage-admin-code-expiry"></p>
+                </div>
+            </section>
+
+            <div id="storage-private-content" hidden>
+                <div class="storage-session-banner">
+                    <span id="storage-session-expiry">Storage access expires in 10 minutes.</span>
+                    <button id="storage-lock-button" class="btn btn-secondary btn-sm" type="button">Lock Storage</button>
+                </div>
             <div class="storage-grid">
                 <section class="storage-panel" aria-labelledby="storage-files-title">
                     <div class="storage-panel-header">
@@ -495,6 +550,7 @@
                         <div id="credential-list" class="credential-list"></div>
                     </div>
                 </section>
+            </div>
             </div>
         </div>
 

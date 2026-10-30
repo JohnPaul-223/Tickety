@@ -3372,3 +3372,167 @@ body.dark-mode .usage-badge,
         width: 100%;
     }
 }
+
+.storage-access-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.storage-access-panel h2,
+.storage-admin-header h2 {
+    margin: .25rem 0 .45rem;
+    color: var(--dark-text);
+    font-size: 1.08rem;
+}
+
+.storage-access-panel .storage-panel-copy {
+    margin-bottom: .85rem;
+}
+
+.storage-access-panel .vault-form {
+    margin-top: 1rem;
+}
+
+.storage-access-panel .vault-form > .btn {
+    margin-top: .25rem;
+}
+
+.storage-access-panel > .btn {
+    margin-top: .3rem;
+}
+
+.storage-admin-panel {
+    margin-bottom: 1.25rem;
+}
+
+.storage-admin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: .9rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.storage-admin-requests {
+    display: grid;
+    gap: .65rem;
+    margin-top: .9rem;
+}
+
+.storage-admin-request {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.storage-admin-request-info {
+    min-width: 0;
+}
+
+.storage-admin-request-info strong,
+.storage-admin-request-info span {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.storage-admin-request-info strong {
+    color: var(--dark-text);
+    font-size: .82rem;
+}
+
+.storage-admin-request-info span {
+    margin-top: .2rem;
+    color: var(--muted-text);
+    font-size: .72rem;
+}
+
+.storage-admin-request-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: .5rem;
+}
+
+.storage-admin-request-status {
+    color: var(--muted-text);
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.storage-admin-code-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-top: 1rem;
+    padding: .85rem;
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius);
+    background: var(--surface-muted);
+}
+
+.storage-admin-code-result > div > span {
+    display: block;
+    margin-bottom: .3rem;
+    color: var(--muted-text);
+    font-size: .7rem;
+}
+
+.storage-admin-code-result code {
+    color: var(--dark-text);
+    font-size: clamp(.85rem, 2vw, 1rem);
+    font-weight: 800;
+    letter-spacing: .05em;
+    overflow-wrap: anywhere;
+}
+
+.storage-admin-code-result > p {
+    flex-basis: 100%;
+    margin: .3rem 0 0;
+    color: var(--muted-text);
+    font-size: .72rem;
+}
+
+.storage-session-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1rem;
+    padding: .75rem 1rem;
+    border: 1px solid var(--primary-soft);
+    border-radius: var(--radius);
+    color: var(--dark-text);
+    background: var(--surface-muted);
+    font-size: .78rem;
+}
+
+@media (max-width: 960px) {
+    .storage-access-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 580px) {
+    .storage-admin-header,
+    .storage-admin-request,
+    .storage-admin-code-result,
+    .storage-session-banner {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .storage-admin-request-actions {
+        flex-wrap: wrap;
+    }
+}

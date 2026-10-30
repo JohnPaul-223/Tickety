@@ -2,6 +2,7 @@
     'use strict';
 
     const BUCKET = 'secure-storage';
+    const STORAGE_ADMIN_EMAIL = 'johnpaulcanopen@gmail.com';
     const VAULT_ITERATIONS = 600000;
     const VAULT_IDLE_MS = 15 * 60 * 1000;
     const VAULT_CHECK_TEXT = 'tickety-credential-vault-check-v1';
@@ -15,13 +16,27 @@
     let credentialEntries = [];
     let storageFiles = [];
     let storageRenderVersion = 0;
+    let storagePreviewUrls = [];
     let vaultGeneration = 0;
     let vaultIdleTimer = null;
     let vaultActivityHandler = null;
+    let storageAccessTimer = null;
+    let storageAccessExpiresAt = null;
+    let adminCodeTimer = null;
+    let adminCodeExpiresAt = null;
 
     document.addEventListener('DOMContentLoaded', initializeStorageFeature);
 
     function initializeStorageFeature() {
+        window.addEventListener('focus', checkStorageAccessExpiry);
+        document.addEventListener('visibilitychange', checkStorageAccessExpiry);
+        document.addEventListener('pointerdown', checkStorageAccessExpiry, { passive: true });
+        document.getElementById('storage-access-request-form')?.addEventListener('submit', requestStorageAccess);
+        document.getElementById('storage-request-refresh')?.addEventListener('click', loadStorageRequestStatus);
+        document.getElementById('storage-access-redeem-form')?.addEventListener('submit', redeemStorageAccess);
+        document.getElementById('storage-admin-refresh')?.addEventListener('click', loadAdminStorageRequests);
+        document.getElementById('storage-admin-copy-code')?.addEventListener('click', copyAdminStorageCode);
+        document.getElementById('storage-lock-button')?.addEventListener('click', () => lockStorageAccess('Storage was locked.'));
         document.getElementById('storage-upload-button')?.addEventListener('click', () => {
             document.getElementById('storage-file-input')?.click();
         });
@@ -37,26 +52,297 @@
 
     async function loadStoragePage() {
         if (!window.supabase?.auth) return;
-        setStorageMessage('Loading your private storage…');
 
         try {
             const { data, error } = await window.supabase.auth.getUser();
             if (error || !data.user) throw error || new Error('Sign in to open Storage.');
 
             if (currentUserId && currentUserId !== data.user.id) {
-                lockStorageVault();
+                lockStorageAccess();
             }
             currentUserId = data.user.id;
+
+            const accountEmail = data.user.email || '';
+            const isAdmin = accountEmail.toLowerCase() === STORAGE_ADMIN_EMAIL;
+            document.getElementById('storage-request-email').value = accountEmail;
+            document.getElementById('storage-unlock-email').value = accountEmail;
+            document.getElementById('storage-admin-panel').hidden = !isAdmin;
+            if (isAdmin) await loadAdminStorageRequests();
+
+            const { data: activeSession, error: sessionError } = await window.supabase
+                .from('storage_access_sessions')
+                .select('expires_at')
+                .order('expires_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (sessionError) {
+                throw new Error('Storage access setup is incomplete. Run the updated supabase-auth-security.sql script.');
+            }
+            if (!activeSession || new Date(activeSession.expires_at).getTime() <= Date.now()) {
+                lockStorageAccess();
+                await loadStorageRequestStatus();
+                return;
+            }
+
+            if (!openStorageAccess(activeSession.expires_at)) return;
+            setStorageMessage('Loading your private storage…');
             const [filesLoaded] = await Promise.all([loadStorageFiles(), loadVaultConfiguration()]);
             if (filesLoaded) setStorageMessage('');
         } catch (error) {
-            setStorageMessage('Could not load Storage. Sign in again and retry.', true);
-            setVaultPanel('setup');
+            lockStorageAccess();
+            setStorageAccessMessage('storage-unlock-message', error.message || 'Could not check Storage access. Try again.', true);
         }
+    }
+
+    async function requestStorageAccess(event) {
+        event.preventDefault();
+        const button = document.getElementById('storage-request-button');
+        const email = document.getElementById('storage-request-email').value.trim();
+        button.disabled = true;
+        setStorageAccessMessage('storage-request-message', 'Sending your request…');
+        try {
+            const { data, error } = await window.supabase.rpc('request_storage_access', { p_email: email });
+            if (error) throw error;
+            setStorageAccessMessage('storage-request-message', `Request ${data.status}. Ask the admin to review it, then check here for updates.`);
+            await loadStorageRequestStatus();
+            if (email.toLowerCase() === STORAGE_ADMIN_EMAIL) await loadAdminStorageRequests();
+        } catch (error) {
+            setStorageAccessMessage('storage-request-message', error.message || 'Could not send your request.', true);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    async function loadStorageRequestStatus() {
+        if (!currentUserId) return;
+        const { data, error } = await window.supabase
+            .from('storage_access_requests')
+            .select('status, requested_at, code_expires_at')
+            .eq('user_id', currentUserId)
+            .order('requested_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        if (error) {
+            setStorageAccessMessage('storage-request-message', 'Could not check request status. Run the updated Supabase security SQL and try again.', true);
+            return;
+        }
+        if (!data) {
+            setStorageAccessMessage('storage-request-message', 'No access request yet. Submit the form above to contact the admin.');
+            return;
+        }
+
+        if (data.status === 'pending') {
+            setStorageAccessMessage('storage-request-message', `Request pending since ${new Date(data.requested_at).toLocaleString()}.`);
+        } else if (data.status === 'issued' && new Date(data.code_expires_at).getTime() > Date.now()) {
+            setStorageAccessMessage('storage-request-message', `The admin issued a code. Ask them to share it with you before ${new Date(data.code_expires_at).toLocaleTimeString()}.`);
+        } else if (data.status === 'issued') {
+            setStorageAccessMessage('storage-request-message', 'Your code expired. Submit a new request to ask the admin for another.');
+        } else {
+            setStorageAccessMessage('storage-request-message', 'That access code was already used. Submit a new request when you need access again.');
+        }
+    }
+
+    async function redeemStorageAccess(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const button = document.getElementById('storage-unlock-button');
+        const email = document.getElementById('storage-unlock-email').value.trim();
+        const code = document.getElementById('storage-access-code').value.trim();
+        button.disabled = true;
+        setStorageAccessMessage('storage-unlock-message', 'Checking your access code…');
+        try {
+            const { error } = await window.supabase.rpc('redeem_storage_access', {
+                p_email: email,
+                p_code: code
+            });
+            if (error) throw error;
+            form.reset();
+            const { data } = await window.supabase.auth.getUser();
+            if (data.user?.email) {
+                document.getElementById('storage-request-email').value = data.user.email;
+                document.getElementById('storage-unlock-email').value = data.user.email;
+            }
+            await loadStoragePage();
+        } catch (error) {
+            setStorageAccessMessage('storage-unlock-message', error.message || 'That code is invalid or expired.', true);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    async function loadAdminStorageRequests() {
+        const panel = document.getElementById('storage-admin-panel');
+        if (!panel || panel.hidden || !window.supabase) return;
+        const list = document.getElementById('storage-admin-requests');
+        setStorageAccessMessage('storage-admin-message', 'Loading access requests…');
+        const { data, error } = await window.supabase
+            .from('storage_access_requests')
+            .select('id, email, status, requested_at, code_expires_at')
+            .order('requested_at', { ascending: false })
+            .limit(50);
+        if (error) {
+            setStorageAccessMessage('storage-admin-message', 'Could not load requests. Check the updated Supabase security SQL.', true);
+            return;
+        }
+
+        list.replaceChildren();
+        if (!data?.length) {
+            setStorageAccessMessage('storage-admin-message', 'There are no access requests yet.');
+            return;
+        }
+
+        setStorageAccessMessage('storage-admin-message', '');
+        for (const request of data) {
+            const item = document.createElement('article');
+            item.className = 'storage-admin-request';
+            const info = document.createElement('div');
+            info.className = 'storage-admin-request-info';
+            const email = document.createElement('strong');
+            email.textContent = request.email;
+            const date = document.createElement('span');
+            date.textContent = `Requested ${new Date(request.requested_at).toLocaleString()}`;
+            info.append(email, date);
+
+            const actions = document.createElement('div');
+            actions.className = 'storage-admin-request-actions';
+            const status = document.createElement('span');
+            status.className = 'storage-admin-request-status';
+            const codeExpired = request.status === 'issued' && new Date(request.code_expires_at).getTime() <= Date.now();
+            status.textContent = codeExpired ? 'expired' : request.status;
+            actions.append(status);
+
+            if (request.status === 'pending' || request.status === 'issued') {
+                const issue = document.createElement('button');
+                issue.type = 'button';
+                issue.className = 'btn btn-primary btn-sm';
+                issue.textContent = request.status === 'issued' ? 'Issue new code' : 'Issue access code';
+                issue.addEventListener('click', () => issueStorageAccessCode(request, issue));
+                actions.append(issue);
+            }
+            item.append(info, actions);
+            list.append(item);
+        }
+    }
+
+    async function issueStorageAccessCode(request, button) {
+        button.disabled = true;
+        setStorageAccessMessage('storage-admin-message', `Generating a code for ${request.email}…`);
+        try {
+            const { data, error } = await window.supabase.rpc('admin_issue_storage_code', { p_request_id: request.id });
+            if (error) throw error;
+            document.getElementById('storage-admin-code').textContent = data.code;
+            adminCodeExpiresAt = new Date(data.expires_at).getTime();
+            document.getElementById('storage-admin-code-expiry').textContent = `Share this code privately. It expires at ${new Date(adminCodeExpiresAt).toLocaleTimeString()} and works once.`;
+            document.getElementById('storage-admin-code-result').hidden = false;
+            clearTimeout(adminCodeTimer);
+            adminCodeTimer = window.setTimeout(clearExpiredAdminCode, Math.max(0, adminCodeExpiresAt - Date.now()));
+            setStorageAccessMessage('storage-admin-message', `Code issued for ${request.email}. Copy it and share it with that user privately.`);
+            await loadAdminStorageRequests();
+        } catch (error) {
+            setStorageAccessMessage('storage-admin-message', error.message || 'Could not issue an access code.', true);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    async function copyAdminStorageCode() {
+        const button = document.getElementById('storage-admin-copy-code');
+        try {
+            await navigator.clipboard.writeText(document.getElementById('storage-admin-code').textContent);
+            button.textContent = 'Copied';
+            window.setTimeout(() => { button.textContent = 'Copy code'; }, 1500);
+        } catch (error) {
+            setStorageAccessMessage('storage-admin-message', 'Clipboard access is unavailable. Select and copy the code manually.', true);
+        }
+    }
+
+    function openStorageAccess(expiresAt) {
+        storageAccessExpiresAt = new Date(expiresAt).getTime();
+        if (storageAccessExpiresAt <= Date.now()) {
+            lockStorageAccess('Storage access expired. Request a new code to continue.');
+            return false;
+        }
+        document.getElementById('storage-access-gate').hidden = true;
+        document.getElementById('storage-private-content').hidden = false;
+        document.getElementById('storage-session-expiry').textContent = `Storage access ends at ${new Date(storageAccessExpiresAt).toLocaleTimeString()}.`;
+        clearTimeout(storageAccessTimer);
+        storageAccessTimer = window.setTimeout(() => {
+            lockStorageAccess('Storage access expired after 10 minutes. Request a new code to continue.');
+        }, Math.max(0, storageAccessExpiresAt - Date.now()));
+        return true;
+    }
+
+    function checkStorageAccessExpiry() {
+        if (storageAccessExpiresAt && Date.now() >= storageAccessExpiresAt) {
+            lockStorageAccess('Storage access expired after 10 minutes. Request a new code to continue.');
+        }
+        if (adminCodeExpiresAt && Date.now() >= adminCodeExpiresAt) clearExpiredAdminCode();
+    }
+
+    function clearExpiredAdminCode() {
+        clearTimeout(adminCodeTimer);
+        adminCodeTimer = null;
+        adminCodeExpiresAt = null;
+        document.getElementById('storage-admin-code').textContent = '';
+        document.getElementById('storage-admin-code-expiry').textContent = 'This code expired. Issue a new one if the user still needs access.';
+        document.getElementById('storage-admin-code-result').hidden = true;
+    }
+
+    function lockStorageAccess(message = '', revokeServerAccess = true) {
+        const shouldRevokeServerAccess = Boolean(revokeServerAccess && storageAccessExpiresAt && Date.now() < storageAccessExpiresAt);
+        if (shouldRevokeServerAccess && window.supabase?.rpc) {
+            void (async () => {
+                try {
+                    const { error } = await window.supabase.rpc('lock_storage_access');
+                    if (error) {
+                        setStorageAccessMessage('storage-unlock-message', 'Storage is locked in this tab, but the server could not revoke this session. It will expire automatically within 10 minutes.', true);
+                    }
+                } catch (error) {
+                    console.warn('Could not revoke Storage access immediately.', error);
+                    setStorageAccessMessage('storage-unlock-message', 'Storage is locked in this tab, but the server could not revoke this session. It will expire automatically within 10 minutes.', true);
+                }
+            })();
+        }
+        clearTimeout(storageAccessTimer);
+        storageAccessTimer = null;
+        storageAccessExpiresAt = null;
+        storageFiles = [];
+        storageRenderVersion++;
+        storagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+        storagePreviewUrls = [];
+        document.getElementById('storage-files-list')?.replaceChildren();
+        document.getElementById('storage-access-code').value = '';
+        document.getElementById('storage-private-content').hidden = true;
+        document.getElementById('storage-access-gate').hidden = false;
+        lockStorageVault();
+        if (message) setStorageAccessMessage('storage-unlock-message', message);
+    }
+
+    function resetStorageIdentity() {
+        lockStorageAccess('', false);
+        currentUserId = null;
+        document.getElementById('storage-admin-panel').hidden = true;
+        document.getElementById('storage-request-email').value = '';
+        document.getElementById('storage-unlock-email').value = '';
+        clearTimeout(adminCodeTimer);
+        adminCodeTimer = null;
+        adminCodeExpiresAt = null;
+        document.getElementById('storage-admin-code').textContent = '';
+        document.getElementById('storage-admin-code-expiry').textContent = '';
+        document.getElementById('storage-admin-code-result').hidden = true;
+    }
+
+    function setStorageAccessMessage(id, message, isError = false) {
+        const element = document.getElementById(id);
+        if (!element) return;
+        element.textContent = message;
+        element.classList.toggle('is-error', Boolean(isError && message));
+        element.classList.toggle('is-visible', Boolean(message));
     }
 
     async function loadStorageFiles() {
         const requestedUserId = currentUserId;
+        const requestedExpiry = storageAccessExpiresAt;
         const { data, error } = await window.supabase
             .from('storage_files')
             .select('id, object_path, original_name, content_type, size_bytes, category, created_at')
@@ -69,7 +355,7 @@
             return false;
         }
 
-        if (requestedUserId !== currentUserId) return false;
+        if (requestedUserId !== currentUserId || requestedExpiry !== storageAccessExpiresAt || Date.now() >= requestedExpiry) return false;
         storageFiles = data || [];
         await renderStorageFiles();
         return true;
@@ -79,6 +365,8 @@
         const container = document.getElementById('storage-files-list');
         if (!container) return;
         const renderVersion = ++storageRenderVersion;
+        storagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+        storagePreviewUrls = [];
         const query = (document.getElementById('storage-file-search')?.value || '').trim().toLowerCase();
         const visibleFiles = storageFiles.filter(file =>
             `${file.original_name} ${file.category}`.toLowerCase().includes(query)
@@ -99,16 +387,20 @@
     }
 
     async function createStorageFileCard(file) {
+        const requestedUserId = currentUserId;
+        const requestedExpiry = storageAccessExpiresAt;
         const card = document.createElement('article');
         card.className = 'storage-file-card';
 
         const preview = document.createElement('div');
         preview.className = 'storage-file-preview';
         if (file.content_type?.startsWith('image/')) {
-            const { data } = await window.supabase.storage.from(BUCKET).createSignedUrl(file.object_path, 5 * 60);
-            if (data?.signedUrl) {
+            const { data, error } = await window.supabase.storage.from(BUCKET).download(file.object_path);
+            if (!error && data && requestedUserId === currentUserId && requestedExpiry === storageAccessExpiresAt && Date.now() < requestedExpiry) {
+                const previewUrl = URL.createObjectURL(data);
+                storagePreviewUrls.push(previewUrl);
                 const image = document.createElement('img');
-                image.src = data.signedUrl;
+                image.src = previewUrl;
                 image.alt = `Preview of ${file.original_name}`;
                 image.loading = 'lazy';
                 preview.append(image);
@@ -204,18 +496,22 @@
     }
 
     async function downloadStorageFile(file) {
+        const requestedUserId = currentUserId;
+        const requestedExpiry = storageAccessExpiresAt;
         try {
-            const { data, error } = await window.supabase.storage.from(BUCKET).createSignedUrl(file.object_path, 5 * 60, {
-                download: file.original_name
-            });
+            const { data, error } = await window.supabase.storage.from(BUCKET).download(file.object_path);
             if (error) throw error;
+            if (requestedUserId !== currentUserId || requestedExpiry !== storageAccessExpiresAt || Date.now() >= requestedExpiry) {
+                throw new Error('Storage access expired. Request a new code to continue.');
+            }
+            const downloadUrl = URL.createObjectURL(data);
             const link = document.createElement('a');
-            link.href = data.signedUrl;
-            link.rel = 'noopener noreferrer';
+            link.href = downloadUrl;
             link.download = file.original_name;
             document.body.append(link);
             link.click();
             link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
         } catch (error) {
             setStorageMessage(`Could not download that file: ${error.message}`, true);
         }
@@ -679,4 +975,6 @@
 
     window.loadStoragePage = loadStoragePage;
     window.lockStorageVault = lockStorageVault;
+    window.lockStorageAccess = lockStorageAccess;
+    window.resetStorageIdentity = resetStorageIdentity;
 })();
