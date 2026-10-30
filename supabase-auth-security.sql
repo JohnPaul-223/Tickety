@@ -4,6 +4,65 @@
 
 begin;
 
+-- User-owned Storage records and an encrypted credential vault.
+create table if not exists public.storage_files (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+    object_path text not null unique,
+    original_name text not null,
+    content_type text not null default 'application/octet-stream',
+    size_bytes bigint not null default 0 check (size_bytes >= 0),
+    category text not null default 'Other',
+    created_at timestamptz not null default now()
+);
+
+create table if not exists public.storage_vaults (
+    user_id uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+    salt text not null,
+    check_iv text not null,
+    check_ciphertext text not null,
+    created_at timestamptz not null default now()
+);
+
+create table if not exists public.storage_credentials (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+    ciphertext text not null,
+    iv text not null,
+    encryption_version smallint not null default 1,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+alter table public.storage_files enable row level security;
+alter table public.storage_vaults enable row level security;
+alter table public.storage_credentials enable row level security;
+
+revoke all on table public.storage_files, public.storage_vaults, public.storage_credentials from anon, public;
+grant select, insert, update, delete on table public.storage_files, public.storage_vaults, public.storage_credentials to authenticated;
+
+drop policy if exists storage_files_owner_access on public.storage_files;
+create policy storage_files_owner_access on public.storage_files
+    for all to authenticated
+    using ((select auth.uid()) = user_id)
+    with check ((select auth.uid()) = user_id);
+
+drop policy if exists storage_vaults_owner_access on public.storage_vaults;
+create policy storage_vaults_owner_access on public.storage_vaults
+    for all to authenticated
+    using ((select auth.uid()) = user_id)
+    with check ((select auth.uid()) = user_id);
+
+drop policy if exists storage_credentials_owner_access on public.storage_credentials;
+create policy storage_credentials_owner_access on public.storage_credentials
+    for all to authenticated
+    using ((select auth.uid()) = user_id)
+    with check ((select auth.uid()) = user_id);
+
+insert into storage.buckets (id, name, public)
+values ('secure-storage', 'secure-storage', false)
+on conflict (id) do update set public = false;
+
 alter table public.tickets enable row level security;
 alter table public.schedule enable row level security;
 alter table public.ticket_images enable row level security;
@@ -55,8 +114,8 @@ drop policy if exists ticketing_private_buckets_require_auth on storage.objects;
 create policy ticketing_private_buckets_require_auth on storage.objects
     as restrictive
     for all to public
-    using (bucket_id not in ('ticket-images', 'images') or auth.uid() is not null)
-    with check (bucket_id not in ('ticket-images', 'images') or auth.uid() is not null);
+    using (bucket_id not in ('ticket-images', 'images', 'secure-storage') or auth.uid() is not null)
+    with check (bucket_id not in ('ticket-images', 'images', 'secure-storage') or auth.uid() is not null);
 
 drop policy if exists ticketing_authenticated_images_select on storage.objects;
 create policy ticketing_authenticated_images_select on storage.objects
@@ -78,5 +137,62 @@ drop policy if exists ticketing_authenticated_images_delete on storage.objects;
 create policy ticketing_authenticated_images_delete on storage.objects
     for delete to authenticated
     using (bucket_id in ('ticket-images', 'images'));
+
+-- Files live under folders named with their owner's auth user ID. This
+-- restrictive fence overrides any broader storage policies for this bucket.
+drop policy if exists secure_storage_owner_fence on storage.objects;
+create policy secure_storage_owner_fence on storage.objects
+    as restrictive
+    for all to public
+    using (
+        bucket_id <> 'secure-storage'
+        or (
+            (select auth.uid()) is not null
+            and (storage.foldername(name))[1] = (select auth.uid())::text
+        )
+    )
+    with check (
+        bucket_id <> 'secure-storage'
+        or (
+            (select auth.uid()) is not null
+            and (storage.foldername(name))[1] = (select auth.uid())::text
+        )
+    );
+
+drop policy if exists secure_storage_owner_select on storage.objects;
+create policy secure_storage_owner_select on storage.objects
+    for select to authenticated
+    using (
+        bucket_id = 'secure-storage'
+        and (storage.foldername(name))[1] = (select auth.uid())::text
+    );
+
+drop policy if exists secure_storage_owner_insert on storage.objects;
+create policy secure_storage_owner_insert on storage.objects
+    for insert to authenticated
+    with check (
+        bucket_id = 'secure-storage'
+        and (storage.foldername(name))[1] = (select auth.uid())::text
+    );
+
+drop policy if exists secure_storage_owner_update on storage.objects;
+create policy secure_storage_owner_update on storage.objects
+    for update to authenticated
+    using (
+        bucket_id = 'secure-storage'
+        and (storage.foldername(name))[1] = (select auth.uid())::text
+    )
+    with check (
+        bucket_id = 'secure-storage'
+        and (storage.foldername(name))[1] = (select auth.uid())::text
+    );
+
+drop policy if exists secure_storage_owner_delete on storage.objects;
+create policy secure_storage_owner_delete on storage.objects
+    for delete to authenticated
+    using (
+        bucket_id = 'secure-storage'
+        and (storage.foldername(name))[1] = (select auth.uid())::text
+    );
 
 commit;

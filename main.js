@@ -149,6 +149,8 @@ function showPage(pageName) {
         loadTickets();
     } else if (pageName === 'schedule') {
         loadSchedule();
+    } else if (pageName === 'storage') {
+        window.loadStoragePage?.();
     }
 }
 

@@ -57,6 +57,7 @@
 
         if (!session?.user) {
             activeUserId = null;
+            window.lockStorageVault?.();
             authScreen.hidden = false;
             appShell.hidden = true;
             startMatrix();

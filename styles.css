@@ -2878,6 +2878,459 @@ body.dark-mode .usage-badge,
     }
 }
 
+/* ========================================================================
+   Private Storage page
+   ======================================================================== */
+.storage-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(340px, .95fr);
+    align-items: start;
+    gap: 1.25rem;
+}
+
+.storage-panel {
+    min-width: 0;
+    padding: clamp(1.15rem, 2vw, 1.65rem);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-xs);
+}
+
+.storage-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1.15rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.storage-panel-header h2 {
+    margin: .2rem 0 .35rem;
+    color: var(--dark-text);
+    font-size: 1.15rem;
+}
+
+.storage-kicker {
+    color: var(--primary-color);
+    font-size: .64rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+}
+
+.storage-panel-copy {
+    max-width: 460px;
+    color: var(--muted-text);
+    font-size: .82rem;
+    line-height: 1.55;
+}
+
+.storage-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.storage-toolbar {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin: 1rem 0;
+}
+
+.storage-category-label {
+    color: var(--muted-text);
+    font-size: .77rem;
+    font-weight: 650;
+}
+
+.storage-category-select,
+.storage-search-wrap,
+.vault-form input,
+.vault-form textarea {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--dark-text);
+    background: var(--surface);
+}
+
+.storage-category-select {
+    min-height: 38px;
+    padding: .35rem 2rem .35rem .6rem;
+    font-size: .8rem;
+}
+
+.storage-search-wrap {
+    display: flex;
+    min-width: 120px;
+    min-height: 38px;
+    align-items: center;
+    gap: .4rem;
+    margin-left: auto;
+    padding: 0 .6rem;
+    color: var(--muted-text);
+}
+
+.storage-search-wrap input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: var(--dark-text);
+    background: transparent;
+    font-size: .8rem;
+}
+
+.storage-search-wrap input:focus-visible {
+    box-shadow: none;
+}
+
+.storage-message,
+.vault-message {
+    display: none;
+    margin: .7rem 0;
+    padding: .65rem .75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--muted-text);
+    background: var(--surface-muted);
+    font-size: .8rem;
+    line-height: 1.5;
+}
+
+.storage-message.is-visible,
+.vault-message.is-visible {
+    display: block;
+}
+
+.storage-message.is-error,
+.vault-message.is-error {
+    border-color: color-mix(in srgb, var(--danger-color) 35%, var(--border-color));
+    color: var(--danger-color);
+}
+
+.storage-files-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .7rem;
+}
+
+.storage-file-card {
+    display: grid;
+    grid-template-columns: 66px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .85rem;
+    min-width: 0;
+    padding: .65rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.storage-file-preview {
+    display: grid;
+    width: 66px;
+    height: 66px;
+    overflow: hidden;
+    place-items: center;
+    border-radius: var(--radius-sm);
+    background: var(--surface-muted);
+}
+
+.storage-file-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.storage-file-glyph {
+    max-width: 58px;
+    overflow: hidden;
+    color: var(--primary-color);
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-overflow: ellipsis;
+}
+
+.storage-file-info {
+    min-width: 0;
+}
+
+.storage-file-info h3 {
+    overflow: hidden;
+    margin: 0 0 .3rem;
+    color: var(--dark-text);
+    font-size: .85rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.storage-file-info p {
+    overflow: hidden;
+    margin: 0;
+    color: var(--muted-text);
+    font-size: .7rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.storage-file-actions,
+.credential-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .4rem;
+}
+
+.storage-empty-state {
+    grid-column: 1 / -1;
+    padding: 2rem 1rem;
+    color: var(--muted-text);
+    font-size: .85rem;
+    text-align: center;
+}
+
+.storage-footnote {
+    margin-top: .85rem;
+    color: var(--muted-text);
+    font-size: .7rem;
+    line-height: 1.5;
+}
+
+.vault-lock-badge {
+    display: grid;
+    width: 39px;
+    height: 39px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--primary-soft);
+    border-radius: 50%;
+    color: var(--primary-color);
+    background: var(--primary-soft);
+}
+
+.vault-state {
+    margin-top: 1.1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--surface-muted);
+}
+
+.vault-state h3 {
+    margin-bottom: .4rem;
+    color: var(--dark-text);
+    font-size: .96rem;
+}
+
+.vault-state > p {
+    margin-bottom: .9rem;
+    color: var(--muted-text);
+    font-size: .78rem;
+    line-height: 1.6;
+}
+
+.vault-form {
+    display: grid;
+    gap: .55rem;
+    margin-top: .8rem;
+}
+
+.vault-form label {
+    color: var(--muted-text);
+    font-size: .74rem;
+    font-weight: 650;
+}
+
+.vault-form input,
+.vault-form textarea {
+    width: 100%;
+    min-width: 0;
+    padding: .6rem .7rem;
+    font-size: .82rem;
+}
+
+.vault-form input:focus,
+.vault-form textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: var(--focus-ring);
+    outline: 0;
+}
+
+.vault-form textarea {
+    min-height: 78px;
+    resize: vertical;
+}
+
+.vault-form > .btn {
+    justify-self: start;
+    margin-top: .35rem;
+}
+
+.vault-open {
+    margin-top: 1rem;
+}
+
+.vault-open-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .9rem;
+}
+
+.vault-open-toolbar > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.vault-open-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    color: var(--success-color);
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+.vault-open-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success-color);
+}
+
+.credential-editor {
+    margin-bottom: 1rem;
+    padding: .9rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--surface-muted);
+}
+
+.credential-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: .4rem;
+}
+
+.credential-list {
+    display: grid;
+    gap: .7rem;
+}
+
+.credential-card {
+    min-width: 0;
+    padding: .85rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.credential-card h3 {
+    margin-bottom: .25rem;
+    color: var(--dark-text);
+    font-size: .9rem;
+}
+
+.credential-card > a {
+    display: block;
+    overflow: hidden;
+    margin-bottom: .45rem;
+    font-size: .72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.credential-username {
+    overflow-wrap: anywhere;
+    margin: .35rem 0 .55rem;
+    color: var(--muted-text);
+    font-size: .77rem;
+}
+
+.credential-secret-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: .35rem;
+}
+
+.credential-secret-row input {
+    min-width: 0;
+    padding: .45rem .55rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--dark-text);
+    background: var(--surface-muted);
+    font-size: .78rem;
+}
+
+.credential-notes {
+    margin: .6rem 0 0;
+    color: var(--muted-text);
+    font-size: .75rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.credential-actions {
+    margin-top: .65rem;
+}
+
+@media (max-width: 960px) {
+    .storage-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 580px) {
+    .storage-panel-header {
+        flex-wrap: wrap;
+    }
+
+    .storage-panel-header > div:first-child {
+        flex: 1 1 100%;
+    }
+
+    .storage-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .storage-search-wrap {
+        flex: 1 1 100%;
+        margin-left: 0;
+    }
+
+    .storage-file-card {
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: .6rem;
+    }
+
+    .storage-file-preview {
+        width: 52px;
+        height: 52px;
+    }
+
+    .storage-file-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+    }
+
+    .vault-open-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;

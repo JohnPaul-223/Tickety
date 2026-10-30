@@ -108,10 +108,19 @@ The app now uses Supabase Auth for email and password sign-in. Self-service sign
 
 Before deploying the login page:
 
-1. Run `supabase-auth-security.sql` in the Supabase SQL Editor. This enables row-level security for tickets, schedules, and ticket image records, and makes the ticket and schedule image buckets private.
+1. Run `supabase-auth-security.sql` in the Supabase SQL Editor. It enables row-level security for tickets, schedules, and Storage records, creates the private Storage bucket, and makes the existing image buckets private.
 2. In Supabase Auth settings, disable public user sign-ups and set the Site URL and allowed redirect URL to `https://dat-tickety.vercel.app`. Password reset links return to the app origin, which must be allowed. The screenshots show this setting is already in place.
 3. Invite or create the team members who should be able to sign in.
 
-The provided policies use a shared-team model: every authenticated team member can read and manage all tickets, schedules, and attachments. Use additional owner or role policies if the app later needs different access for each user.
+Tickets, schedules, and their existing attachments use a shared-team model. Storage files and credential records are restricted to the account that created them.
+
+### Storage
+
+- Upload files and photos into private, per-user storage folders.
+- Store account credentials in a separate vault encrypted in the browser with AES-GCM before they are sent to Supabase.
+- Choose a unique vault passphrase of at least 12 characters. The passphrase is never stored; credentials cannot be recovered if it is forgotten.
+- The credential vault locks when you sign out or after 15 minutes of inactivity. File access is protected by Supabase Auth and owner-specific row and object policies.
+
+The Storage feature requires the updated `supabase-auth-security.sql` to be run in Supabase. Uploaded files are private to their owner; credential contents have the additional client-side encryption layer.
 
 The browser contains the Supabase publishable key by design. It does not grant database access by itself; the SQL policies above enforce authenticated access in Supabase.
